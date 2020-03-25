@@ -24,42 +24,26 @@
 
 #pragma once
 
-#include <atomic>
-#include <vector>
-#include <functional>
+#include <unordered_map>
 
 #include "Config.hpp"
-
-#include "Types/Unique.hpp"
 #include "Types/FundamentalTypes.hpp"
-#include "Threading/Worker.hpp"
-#include "Threading/ThreadSafeLockQueue.hpp"
+#include "Threading/WorkerGroups/WorkerGroup.hpp"
+#include "Threading/WorkerGroups/EWorkerGroupID.hpp"
 
 BEGIN_DAEMON_NAMESPACE
 
 /**
- * \brief This class is responsible for the repartition of different tasks between workers
+ * \brief This class is responsible for the
+ *        repartition of different tasks between workers
  */
-class Scheduler : Unique
+class Scheduler
 {
-    public: using Job = std::function<DAEvoid()>;
-
     private:
 
-        #pragma region Memebers
+        #pragma region Members
 
-        std::vector<Worker>      m_workers;
-        std::atomic_bool         m_running;
-        ThreadSafeLockQueue<Job> m_job_queue;
-
-        #pragma endregion
-
-        #pragma region Methods
-
-        /**
-         * \brief Job given to every worker used my the scheduler
-         */
-        DAEvoid WorkersJob() noexcept;
+        std::unordered_map<EWorkerGroupID, WorkerGroup*> m_groups;
 
         #pragma endregion
 
@@ -67,14 +51,9 @@ class Scheduler : Unique
 
         #pragma region Constructors
 
-        /**
-         * \brief Scheduler constructor
-         * \param in_workers_count Number of managed workers
-         */
-        Scheduler(DAEuint16 in_workers_count = 0u);
-
-        Scheduler(Scheduler const& in_copy)        = delete;
-        Scheduler(Scheduler&& in_move) noexcept = delete;
+        Scheduler();
+        Scheduler(Scheduler const& in_copy) = delete;
+        Scheduler(Scheduler&&      in_move) = delete;
         ~Scheduler();
 
         #pragma endregion
@@ -82,29 +61,26 @@ class Scheduler : Unique
         #pragma region Methods
 
         /**
-         * \brief Schedules a task on one of the available threads
+         * \brief Schedules a task to be handled by a given working group
          * \param in_task Task to schedule, any return value will be discarded
-         * \note If Shutdown() has been called, this method has no effect
+         * \param in_worker_group Defines the group of workers that will be able to handle the job
          */
-        DAEvoid ScheduleTask(Job&& in_task) noexcept;
+        DAEvoid EnqueueTask(Task&& in_task, EWorkerGroupID in_worker_group) noexcept;
 
         /**
-         * \brief Waits until all the queued tasks are completed
+         * \brief Returns the size of a worker group
+         * \param in_worker_group Worker group to measure
+         * \return Size of the passed worker group
          */
-        DAEvoid WaitForQueuedTasks() noexcept;
-
-        /**
-         * \brief Waits for all current active tasks to be done and drops any queued jobs. This also detaches any workers.
-         * \note This method can only be called once
-         */
-        DAEvoid Shutdown() noexcept;
+        [[nodiscard]]
+        DAEsize GetWorkerGroupSize(EWorkerGroupID in_worker_group) const noexcept;
 
         #pragma endregion 
 
         #pragma region Operators
 
-        Scheduler& operator=(Scheduler const& in_copy)        = delete;
-        Scheduler& operator=(Scheduler&& in_move) noexcept    = delete;
+        Scheduler& operator=(Scheduler const& in_copy) = delete;
+        Scheduler& operator=(Scheduler&&      in_move) = delete;
 
         #pragma endregion
 };

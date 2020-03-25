@@ -19,34 +19,32 @@
  *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
  */
 
 #pragma once
 
 #include "Config.hpp"
-
-#include "Containers/Queue.hpp"
-#include "Threading/Synchronized.hpp"
+#include "Containers/Vector.hpp"
 #include "Types/FundamentalTypes.hpp"
+
+#include "Threading/Task.hpp"
+#include "Threading/Worker.hpp"
+#include "Threading/WorkerGroups/EWorkerGroupID.hpp"
 
 BEGIN_DAEMON_NAMESPACE
 
 /**
- * \brief Thread safe queue encapsulation
- * \tparam TType Type contained into the queue
+ * \brief A working group is a group of uniquely identifiable workers
+ *        designed to handle specific types of tasks
  */
-template <typename TType>
-class ThreadSafeQueue
+class WorkerGroup
 {
-    private:
+    protected:
 
         #pragma region Members
 
-        Synchronized<Queue<TType>> m_queue;
-
-        using QueueReadAccess  = decltype(m_queue)::ReadAccess;
-        using QueueWriteAccess = decltype(m_queue)::WriteAccess;
+        EWorkerGroupID m_group_id;
+        Vector<Worker> m_workers;
 
         #pragma endregion
 
@@ -54,44 +52,46 @@ class ThreadSafeQueue
 
         #pragma region Constructors
 
-        ThreadSafeQueue()                                    = default;
-        ThreadSafeQueue(ThreadSafeQueue const& in_copy)        = default;
-        ThreadSafeQueue(ThreadSafeQueue&& in_move) noexcept = default;
-        ~ThreadSafeQueue()                                    = default;
+        /**
+         * \brief Initializes a working group
+         *        Workers are in a lethargic state meaning that memory has been
+         *        allocated but the workers still needs to be initialized with jobs.
+         * \param in_group_id Unique ID of the group
+         * \param in_workers_count Number of workers in this group
+         */
+        WorkerGroup(EWorkerGroupID in_group_id, DAEuint16 in_workers_count) noexcept;
+
+        WorkerGroup(WorkerGroup const& in_copy) = default;
+        WorkerGroup(WorkerGroup&&      in_move) = default;
+        virtual ~WorkerGroup()                  = default;
 
         #pragma endregion
 
         #pragma region Methods
 
         /**
-         * \brief Checks if the queue is empty
-         * \return True if the queue is empty, false otherwise
+         * \brief Returns the size of the working group
+         * \return Size of the working group
          */
-        DAEbool Empty() const noexcept;
+        [[nodiscard]]
+        DAEuint16 GetGroupSize() const noexcept;
 
         /**
-         * \brief Enqueue an item
-         * \param in_item Item to enqueue
+         * \brief Returns the unique identifier of the group
+         * \return Unique EWorkerGroupID of the group
          */
-        DAEvoid Enqueue(TType&& in_item) noexcept;
-
-        /**
-         * \brief Tries to dequeue an item
-         * \warning If the queue is empty, the result of this function and the content of out_item are undefined
-         * \param out_item Dequeued item
-         */
-        DAEvoid Dequeue(TType& out_item) noexcept;
+        [[nodiscard]]
+        EWorkerGroupID GetID() const noexcept;
 
         #pragma endregion
 
         #pragma region Operators
 
-        ThreadSafeQueue& operator=(ThreadSafeQueue const& in_copy)        = default;
-        ThreadSafeQueue& operator=(ThreadSafeQueue&& in_move) noexcept    = default;
+        WorkerGroup& operator=(WorkerGroup const& in_copy) noexcept = delete;
+        WorkerGroup& operator=(WorkerGroup&&      in_move) noexcept = delete;
 
         #pragma endregion
-};
 
-#include "Threading/ThreadSafeQueue.inl"
+};
 
 END_DAEMON_NAMESPACE

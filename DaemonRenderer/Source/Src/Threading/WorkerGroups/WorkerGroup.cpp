@@ -1,7 +1,7 @@
 /*
  *  MIT License
  *
- *  Copyright (c) 2019-2020 Basile Combet, Philippe Yi
+ *  Copyright (c) 2019 Basile Combet, Philippe Yi
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -19,42 +19,25 @@
  *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
  */
 
-#include "Threading/Worker.hpp"
+#include "Threading/WorkerGroups/WorkerGroup.hpp"
 
 USING_DAEMON_NAMESPACE
 
-Worker::Worker(Worker&& in_move) noexcept
+WorkerGroup::WorkerGroup(EWorkerGroupID const in_group_id, DAEuint16 const in_workers_count) noexcept:
+    m_group_id {in_group_id},
+    m_workers  {}
 {
-    m_thread = std::move(in_move.m_thread);
+    m_workers.resize(in_workers_count);
 }
 
-Worker::~Worker() noexcept
+DAEuint16 WorkerGroup::GetGroupSize() const noexcept
 {
-    if (m_thread.joinable())
-        m_thread.join();
+    return static_cast<DAEuint16>(m_workers.size());
 }
 
-DAEbool Worker::Available() const noexcept
+EWorkerGroupID WorkerGroup::GetID() const noexcept
 {
-    return m_thread.joinable();
-}
-
-DAEvoid Worker::WaitForAvailability() noexcept
-{
-    if (m_thread.joinable())
-        m_thread.join();
-}
-
-DAEvoid Worker::Detach() noexcept
-{
-    if (!m_thread.joinable())
-        m_thread.detach();
-}
-
-std::thread& Worker::Thread() noexcept
-{
-    return m_thread;
+    return m_group_id;
 }

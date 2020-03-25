@@ -1,7 +1,7 @@
 /*
  *  MIT License
  *
- *  Copyright (c) 2019-2020 Basile Combet, Philippe Yi
+ *  Copyright (c) 2019 Basile Combet, Philippe Yi
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to deal
@@ -22,27 +22,20 @@
  *  SOFTWARE.
  */
 
-template <typename TType>
-DAEbool ThreadSafeQueue<TType>::Empty() const noexcept
-{
-    QueueReadAccess access(m_queue);
+#pragma once
 
-    return access->empty();
-}
+#include <functional>
 
-template <typename TType>
-DAEvoid ThreadSafeQueue<TType>::Enqueue(TType&& in_item) noexcept
-{
-    QueueWriteAccess access(m_queue);
+#include "Config.hpp"
+#include "Types/FundamentalTypes.hpp"
 
-    access->emplace_back(std::forward<TType>(in_item));
-}
+BEGIN_DAEMON_NAMESPACE
 
-template <typename TType>
-DAEvoid ThreadSafeQueue<TType>::Dequeue(TType& out_item) noexcept
-{
-    QueueWriteAccess access(m_queue);
-    
-    out_item = std::move(access->front());
-    access->pop_front();
-}
+/**
+ * \brief A task is a simple function pointer
+ *        taking no argument and returning nothing
+ * To use a task with function parameters, simply wrap your actual call into a capturing lambda
+ */
+using Task = std::function<DAEvoid()>;
+
+END_DAEMON_NAMESPACE

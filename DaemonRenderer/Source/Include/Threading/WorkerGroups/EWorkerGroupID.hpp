@@ -22,39 +22,19 @@
  *  SOFTWARE.
  */
 
-#include "Threading/Worker.hpp"
+#pragma once
 
-USING_DAEMON_NAMESPACE
+#include "Config.hpp"
 
-Worker::Worker(Worker&& in_move) noexcept
+BEGIN_DAEMON_NAMESPACE
+
+/**
+ * \brief The ID of a working group
+ */
+enum class EWorkerGroupID
 {
-    m_thread = std::move(in_move.m_thread);
-}
+    IO,
+    Ecs,
+};
 
-Worker::~Worker() noexcept
-{
-    if (m_thread.joinable())
-        m_thread.join();
-}
-
-DAEbool Worker::Available() const noexcept
-{
-    return m_thread.joinable();
-}
-
-DAEvoid Worker::WaitForAvailability() noexcept
-{
-    if (m_thread.joinable())
-        m_thread.join();
-}
-
-DAEvoid Worker::Detach() noexcept
-{
-    if (!m_thread.joinable())
-        m_thread.detach();
-}
-
-std::thread& Worker::Thread() noexcept
-{
-    return m_thread;
-}
+END_DAEMON_NAMESPACE

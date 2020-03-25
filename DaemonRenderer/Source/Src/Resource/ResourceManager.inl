@@ -41,12 +41,12 @@ DAEvoid ResourceManager::GarbageCollection(TUnary_Predicate in_predicate, DAEboo
         if (in_predicate(*iterator->second) && iterator->second->data)
         {
             // Scheduling the deletion
-            m_scheduler_reference.ScheduleTask([manifest = iterator->second, in_clear_invalid_resources, this] {
+            m_scheduler_reference.EnqueueTask([manifest = iterator->second, in_clear_invalid_resources, this] {
                 InvalidateResource(manifest);
 
                 if (in_clear_invalid_resources && manifest->status.load(std::memory_order_acquire) == EResourceStatus::Invalid)
                     delete manifest;
-            });
+            }, EWorkerGroupID::IO);
         }
 
         // If clearing invalid resources has been requested and the resource is invalid:

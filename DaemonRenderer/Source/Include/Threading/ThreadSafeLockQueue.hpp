@@ -24,11 +24,11 @@
 
 #pragma once
 
-#include "Config.hpp"
-
 #include <mutex>
 #include <queue>
 #include <atomic>
+
+#include "Config.hpp"
 
 #include "Types/FundamentalTypes.hpp"
 #include "Threading/Synchronized.hpp"
@@ -45,7 +45,7 @@ class ThreadSafeLockQueue
 {
     private:
 
-        #pragma region Memebers
+        #pragma region Members
 
         std::condition_variable         m_empty_notification;
         std::condition_variable         m_push_notification;
@@ -53,7 +53,7 @@ class ThreadSafeLockQueue
         std::mutex                      m_empty_mutex;
         std::mutex                      m_push_mutex;
         Synchronized<std::queue<TType>> m_queue;
-    
+
         #pragma endregion 
 
         using QueueReadAccess  = typename decltype(m_queue)::ReadAccess;
@@ -64,8 +64,8 @@ class ThreadSafeLockQueue
         #pragma region Constructors
 
         ThreadSafeLockQueue();
-        ThreadSafeLockQueue(ThreadSafeLockQueue const& in_copy)        = default;
-        ThreadSafeLockQueue(ThreadSafeLockQueue&& in_move) noexcept = default;
+        ThreadSafeLockQueue(ThreadSafeLockQueue const& in_copy) = delete;
+        ThreadSafeLockQueue(ThreadSafeLockQueue&&      in_move) = delete;
         ~ThreadSafeLockQueue();
 
         #pragma endregion 
@@ -114,8 +114,8 @@ class ThreadSafeLockQueue
 
         #pragma region Operators
 
-        ThreadSafeLockQueue& operator=(ThreadSafeLockQueue const& in_copy)        = default;
-        ThreadSafeLockQueue& operator=(ThreadSafeLockQueue&& in_move) noexcept    = default;
+        ThreadSafeLockQueue& operator=(ThreadSafeLockQueue const& in_copy) = delete;
+        ThreadSafeLockQueue& operator=(ThreadSafeLockQueue&&      in_move) = delete;
 
         #pragma endregion 
 };

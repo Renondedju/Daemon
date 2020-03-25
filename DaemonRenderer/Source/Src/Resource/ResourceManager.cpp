@@ -165,13 +165,13 @@ DAEvoid ResourceManager::Cleanup() noexcept
     ManifestsWriteAccess access(m_manifests);
 
     // The resources will be unloaded one by one, even if the resource manager gets deleted in the process
-    for (auto& [identifier, manifest] : access.Get())
+    for (auto& pair : access.Get())
     {
-        m_scheduler_reference.ScheduleTask([manifest, this] {
-            InvalidateResource(manifest);
+        m_scheduler_reference.EnqueueTask([pair, this] {
+            InvalidateResource(pair.second);
 
-            delete manifest;
-        });
+            delete pair.second;
+        }, EWorkerGroupID::IO);
     }
 
     access->clear();
@@ -224,9 +224,9 @@ DAEbool ResourceManager::UnloadResource(ResourceIdentifier const& in_identifier,
         UnloadingRoutine(manifest);
     else
     {
-        m_scheduler_reference.ScheduleTask([&manifest, this] {
+        m_scheduler_reference.EnqueueTask([&manifest, this] {
             UnloadingRoutine(manifest);
-        });
+        }, EWorkerGroupID::IO);
     }
 
     return true;

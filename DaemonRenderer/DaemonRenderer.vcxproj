@@ -156,9 +156,13 @@
     <ClInclude Include="Source\Include\Meta\ReferenceWrapper.hpp" />
     <ClInclude Include="Source\Include\Meta\ValueIndexer.hpp" />
     <ClInclude Include="Source\Include\Threading\ESynchronizationMode.hpp" />
+    <ClInclude Include="Source\Include\Threading\WorkerGroups\EWorkerGroupID.hpp" />
+    <ClInclude Include="Source\Include\Threading\WorkerGroups\BatchedWorkerGroup.hpp" />
+    <ClInclude Include="Source\Include\Threading\WorkerGroups\WorkerGroup.hpp" />
     <ClInclude Include="Source\Include\Threading\Scheduler.hpp" />
+    <ClInclude Include="Source\Include\Threading\Task.hpp" />
     <ClInclude Include="Source\Include\Threading\ThreadSafeLockQueue.hpp" />
-    <ClInclude Include="Source\Include\Threading\ThreadSafeQueue.hpp" />
+    <ClInclude Include="Source\Include\Threading\WorkerGroups\RelaxedWorkerGroup.hpp" />
     <ClInclude Include="Source\Include\Time\ControlClock.hpp" />
     <ClInclude Include="Source\Include\Time\Sleep.hpp" />
     <ClInclude Include="Source\Include\Types\NonCopyable.hpp" />
@@ -262,7 +266,6 @@
     <None Include="Source\Src\Threading\Synchronized.inl" />
     <None Include="Source\Src\Threading\SynchronizedAccess.inl" />
     <None Include="Source\Src\Threading\ThreadSafeLockQueue.inl" />
-    <None Include="Source\Src\Threading\ThreadSafeQueue.inl" />
     <None Include="Source\Src\Threading\Worker.inl" />
     <None Include="Source\Src\Types\NamedType.inl" />
   </ItemGroup>
@@ -285,7 +288,10 @@
     <ClCompile Include="Source\Src\Resource\ResourceManager.cpp" />
     <ClCompile Include="Source\Src\Resource\ResourceManifest.cpp" />
     <ClCompile Include="Source\Src\Threading\Scheduler.cpp" />
+    <ClCompile Include="Source\Src\Threading\WorkerGroups\BatchedWorkerGroup.cpp" />
     <ClCompile Include="Source\Src\Threading\Worker.cpp" />
+    <ClCompile Include="Source\Src\Threading\WorkerGroups\RelaxedWorkerGroup.cpp" />
+    <ClCompile Include="Source\Src\Threading\WorkerGroups\WorkerGroup.cpp" />
     <ClCompile Include="Source\Src\Time\ControlClock.cpp" />
     <ClCompile Include="Source\Src\Time\Sleep.cpp" />
     <ClCompile Include="Source\Src\Time\Timer.cpp" />

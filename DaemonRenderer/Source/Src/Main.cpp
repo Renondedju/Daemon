@@ -22,100 +22,139 @@
  *  SOFTWARE.
  */
 
-#include <Vector/Vector.hpp>
+#include <queue>
+#include <atomic>
+#include <iostream>
 
-#include "ECS/Component.hpp"
-#include "ECS/EntityAdmin.hpp"
-#include "ECS/ComponentItem.hpp"
-#include "ECS/ComponentSystem.hpp"
-
-#include "Windowing/WindowManager.hpp"
-
-#include "Debug/Logging/Handlers/StreamHandler.hpp"
-
-#include "Debug/Logging/Formatters/ConsoleFormatter.hpp"
+#include "Config.hpp"
+#include "Utility/Benchmark.hpp"
+#include "Threading/Scheduler.hpp"
+#include "Threading/WorkerGroups/BatchedWorkerGroup.hpp"
+#include "Threading/WorkerGroups/RelaxedWorkerGroup.hpp"
 
 USING_DAEMON_NAMESPACE
 
+void TestTask()
+{
+    for (volatile int i = 0; i < 1000000; ++i)
+    {}
+}
+
+void TestBigTask()
+{
+    for (volatile int i = 0; i < 10000000; ++i)
+    {}
+}
+
 /**
- * \brief This table keeps track of every available component in the ECS
- *        it is also used to create and maintain every component ID,
- *        see the Component class for more info.
+ * This kind of worker group can handle so called "unexpected" jobs
+ *
+ * The queue used internally is unlimited and can be inspected using events,
+ * allowing to save a lot of CPU by putting to sleep unused workers.
+ *
+ * As a trade off, this kind of group can be relatively slow at handling jobs, making it
+ * a perfect candidate for non critical tasks such as resource handling or I/O transactions
  */
-enum class EComponentsTable
+void TestRelaxed(DAEsize const in_tasks_count, DAEuint16 const in_workers_count, DAEsize const in_sample_size)
 {
-    Position,
-    Counter,
-    Life,
-};
+    RelaxedWorkerGroup group(EWorkerGroupID::IO, in_workers_count);
+    std::atomic_flag   wait = ATOMIC_FLAG_INIT;
 
-struct PositionComponentItem : public ComponentItem<Vector3f>
+    LOOPED_BENCHMARK("Execute tasks", in_sample_size)
+    {
+        // Adding dummy tasks
+        for (DAEsize index = 0; index < in_tasks_count / 2; ++index)
+            group.EnqueueTask(&TestTask);
+
+        group.EnqueueTask(&TestBigTask);
+
+        for (DAEsize index = 0; index < in_tasks_count / 2; ++index)
+            group.EnqueueTask(&TestTask);
+
+        // Adding the "notification" task that
+        // will unlock this thread once completed
+        group.EnqueueTask([&wait]() {
+            wait.clear(std::memory_order_release);
+        });
+
+        // Locking this thread until completion of the batch
+        // (ie. the last task has been handled)
+        wait.test_and_set(std::memory_order_acquire);
+        while (wait.test_and_set(std::memory_order_acquire))
+        {}
+    }
+}
+
+/**
+ * As the name indicates, a batched worker group handles tasks by batch.
+ * This specially useful when a certain batch of tasks needs to be executed again and again
+ * without loosing time by having to re upload the same tasks in between each execution.
+ * This comes with the downside of being harder to manipulate and overall less flexible
+ */
+void TestBatched(DAEsize const in_tasks_count, DAEuint16 const in_workers_count, DAEsize const in_sample_size)
 {
-    enum class EMembers
-    { Position };
-};
+    BatchedWorkerGroup group(EWorkerGroupID::Ecs, in_workers_count);
+    std::atomic_flag   wait = ATOMIC_FLAG_INIT;
 
-struct LifeComponentItem : public ComponentItem<DAEfloat, DAEfloat>
-{
-    enum class EMembers
-    { Life, MaxLife };
-};
+    BENCHMARK("Writing tasks")
+    {
+        std::vector<Task> tasks (in_tasks_count + 2);
 
-struct CounterComponentItem : public ComponentItem<DAEfloat> 
-{
-    enum class EMembers
-    { Counter };
-};
+        // Adding dummy tasks
+        for (DAEsize index = 0; index < in_tasks_count + 1; ++index)
+            tasks[index] = &TestTask;
 
-DAEMON_DEFINE_COMPONENT(EComponentsTable, Position);
-DAEMON_DEFINE_COMPONENT(EComponentsTable, Counter);
-DAEMON_DEFINE_COMPONENT(EComponentsTable, Life);
+        tasks[in_tasks_count / 2] = &TestBigTask;
+
+        // Adding the "notification" task that
+        // will unlock this thread once completed
+        tasks[in_tasks_count] = [&wait]() {
+            wait.clear(std::memory_order_release);
+        };
+
+        group.SetBatch(tasks);
+    }
+
+    LOOPED_BENCHMARK("Execute tasks", in_sample_size)
+    {
+        group.ConsumeBatch();
+
+        // Locking this thread until completion of the batch
+        // (ie. the last task has been handled)
+        wait.test_and_set(std::memory_order_acquire);
+        while (wait.test_and_set(std::memory_order_acquire))
+        {}
+    }
+}
 
 int main()
 {
-    /* TODO Needs to be removed when Kernel is done TODO */
+    // The sample size represents the number of frames simulated
+    // in order to output a benchmark, the bigger it is, the greater the accuracy of the benchmark
+    // but the slower it will be to compute
+    DAEsize   const sample_size   = 500;
+    DAEsize   const tasks_count   = 50;
+    DAEuint16 const workers_count = 7;
 
-    Logger root_logger("ROOT", ELogLevel::Debug, nullptr);
+    std::cout << "Executing " << tasks_count << " tasks with " << workers_count << " workers.\n";
 
-    GRootLogger = &root_logger;
-
-    WindowManager window_manager;
-
-    GWindowManager = &window_manager;
-
-    ConsoleFormatter formatter;
-
-    StreamHandler stream(&formatter, std::cout);
-
-    root_logger.AddHandler(&stream);
-
-    window_manager.Initialize();
-
-    WindowParameters params;
-
-    window_manager.CreateWindow(std::move(params));
-
-    while (!window_manager.GetMainWindow()->ShouldClose())
+    // This benchmark will measure how much these dummy tasks would cost us
+    // if they where to be executed on a single thread
+    BENCHMARK("Linear time")
     {
-        window_manager.Update();
+        TestBigTask();
+
+        for (DAEsize index = 0; index < tasks_count; ++index)
+            TestTask();
     }
 
-    /* TODO Needs to be removed when Kernel is done TODO */
+    std::cout << "\n---- Relaxed test" << std::endl;
+    TestRelaxed(tasks_count, workers_count, sample_size);
 
-    EntityAdmin admin;
+    std::cout << "\n---- Batched test" << std::endl;
+    TestBatched(tasks_count, workers_count, sample_size);
 
-    admin.CreateEntity<LifeComponent>();
-    admin.CreateEntity<LifeComponent>();
-    admin.CreateEntity<LifeComponent, CounterComponent>();
-    admin.CreateEntity<LifeComponent, PositionComponent>();
-    admin.CreateEntity<PositionComponent, LifeComponent>();
-    admin.CreateEntity<PositionComponent, LifeComponent, CounterComponent>();
-    admin.CreateEntity<PositionComponent, LifeComponent, CounterComponent>();
-
-    ComponentQuery query;
-
-    query.SetupInclusionQuery<LifeComponent, PositionComponent>();
-    query.SetupExclusionQuery<CounterComponent>();
+    system("pause");
 
     return EXIT_SUCCESS;
 }

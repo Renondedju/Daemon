@@ -24,65 +24,37 @@
 
 #include "Threading/Scheduler.hpp"
 
+#include "Threading/WorkerGroups/BatchedWorkerGroup.hpp"
+#include "Threading/WorkerGroups/RelaxedWorkerGroup.hpp"
+
 USING_DAEMON_NAMESPACE
 
-Scheduler::Scheduler(DAEuint16 const in_workers_count):
-    m_workers   {in_workers_count == 0u ? std::thread::hardware_concurrency() - 1 : in_workers_count},
-    m_running    {true},
-    m_job_queue {}
+Scheduler::Scheduler():
+    m_groups {}
 {
-    DAEuint16 index = 0;
-    for (Worker& worker : m_workers)
-    {
-        worker.Label() = "Scheduler worker " + std::to_string(index++);
-        worker.Execute(&Scheduler::WorkersJob, this);
-    }
+    // Decreasing the concurrency by 1 since the main thread is already spawned
+    DAEuint16 const concurrency = static_cast<DAEuint16 const>(std::thread::hardware_concurrency() - 1);
+
+    DAEuint16 const io_threads  = concurrency / 4;
+    DAEuint16 const ecs_threads = concurrency - io_threads;
+
+    m_groups.try_emplace<WorkerGroup*>(EWorkerGroupID::IO , new RelaxedWorkerGroup(EWorkerGroupID::IO , io_threads ));
+    m_groups.try_emplace<WorkerGroup*>(EWorkerGroupID::Ecs, new BatchedWorkerGroup(EWorkerGroupID::Ecs, ecs_threads));
 }
 
 Scheduler::~Scheduler()
 {
-    Shutdown();
+    // Releasing groups
+    for (auto [id, group]: m_groups)
+        delete group;
 }
 
-DAEvoid Scheduler::ScheduleTask(Job&& in_task) noexcept
+DAEvoid Scheduler::EnqueueTask(Task&& in_task, EWorkerGroupID const in_worker_group) noexcept
 {
-    if (!m_running.load(std::memory_order_acquire))
-        return;
-
-    m_job_queue.Enqueue(std::forward<Job>(in_task));
+    //m_groups.at(in_worker_group)->EnqueueTask(std::forward<Task>(in_task));
 }
 
-DAEvoid Scheduler::WaitForQueuedTasks() noexcept
+DAEsize Scheduler::GetWorkerGroupSize(EWorkerGroupID const in_worker_group) const noexcept
 {
-    if (!m_running.load(std::memory_order_acquire))
-        return;
-
-    while (!m_job_queue.Empty())
-        std::this_thread::yield();
-}
-
-DAEvoid Scheduler::Shutdown() noexcept
-{
-    if (!m_running.load(std::memory_order_acquire))
-        return;
-
-    m_running.store(false, std::memory_order_release);
-    m_job_queue.Clear();
-
-    for (Worker& worker : m_workers)
-        worker.Detach();
-}
-
-DAEvoid Scheduler::WorkersJob() noexcept
-{
-    Job current_job;
-
-    while (m_running.load(std::memory_order_acquire))
-    {
-        // Always try to dequeue jobs, the job queue will lock us if nothing is available
-        DAEbool const job_validity = m_job_queue.Dequeue(current_job);
-
-        if (job_validity)
-            current_job();
-    }
+    return m_groups.at(in_worker_group)->GetGroupSize();
 }

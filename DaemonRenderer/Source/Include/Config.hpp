@@ -133,15 +133,6 @@
 namespace DAEMON_NAMESPACE {}
 
 // ------------------------------
-//            Threading
-
-#if defined(DAEMON_CONFIG_DEBUG)
-    #define DAEMON_THREADING_ENABLE_THREAD_LABELS
-#else
-    #define DAEMON_THREADING_DISABLE_THREAD_LABELS
-#endif
-
-// ------------------------------
 //       Resource management
 
 #if defined(DAEMON_CONFIG_DEBUG)

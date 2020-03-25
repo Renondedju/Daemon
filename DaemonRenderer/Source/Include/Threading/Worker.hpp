@@ -24,67 +24,41 @@
 
 #pragma once
 
+#include <atomic>
 #include <thread>
 #include <string>
 
 #include "Config.hpp"
-
-#include "Types/NonCopyable.hpp"
 #include "Types/FundamentalTypes.hpp"
 
 BEGIN_DAEMON_NAMESPACE
 
-class Worker : NonCopyable
+class Worker
 {
     private:
 
-        #pragma region Variables
+        #pragma region Members
 
         std::thread m_thread;
-
-        #ifdef DAEMON_THREADING_ENABLE_THREAD_LABELS
-            std::string m_label;
-        #endif
-
+        
         #pragma endregion
 
     public:
 
+        // This atomic flag is actually only used by the BatchedWorkerGroup
+        // to synchronize workers at the end of the frame
+        volatile std::atomic_flag lock = ATOMIC_FLAG_INIT;
+
         #pragma region Constructors
 
-        Worker(DAEchar const* in_label) noexcept;
-        Worker()                        noexcept;
-
-        Worker(Worker const& in_copy)    noexcept = delete;
-        Worker(Worker&&         in_move)    noexcept = default;
-        ~Worker()                        noexcept;
+        Worker()                      = default;
+        Worker(Worker const& in_copy) = delete;
+        Worker(Worker&&      in_move) noexcept;
+        ~Worker() noexcept;
 
         #pragma endregion
 
         #pragma region Methods
-
-        #ifdef DAEMON_THREADING_ENABLE_THREAD_LABELS
-
-        /**
-         * \brief Label getter. If DAEMON_DISABLE_ENABLE_THREAD_LABELS is defined, then this method will return an empty string
-         * \return Worker's label
-         */
-        [[nodiscard]]
-        std::string const& Label() const noexcept;
-        
-        [[nodiscard]]
-        std::string&          Label() noexcept;
-
-        #else
-
-        /**
-         * \brief Label getter. If DAEMON_DISABLE_ENABLE_THREAD_LABELS is defined, then this method will return an empty string
-         * \return Worker's label
-         */
-        [[nodiscard]]
-        std::string Label() const noexcept;
-
-        #endif
 
         /**
          * \brief Checks if the worker is busy or not 
@@ -100,7 +74,7 @@ class Worker : NonCopyable
          * \param in_args Args of the job to execute
          */
         template <typename TExecutable, typename ...TArgs>
-        DAEvoid Execute(TExecutable in_job, TArgs... in_args) noexcept;
+        DAEvoid Execute(TExecutable in_job, TArgs&&... in_args) noexcept;
 
         /**
          * \brief Waits for the last task to execute, and starts the execution of this new job 
@@ -109,7 +83,7 @@ class Worker : NonCopyable
          * \param in_args Args of the job to execute
          */
         template <typename TExecutable, typename ...TArgs>
-        DAEvoid ExecuteWithInstance(TExecutable in_job, TArgs... in_args) noexcept;
+        DAEvoid ExecuteWithInstance(TExecutable in_job, TArgs&&... in_args) noexcept;
 
         /**
          * \brief Locks the current thread until the current job has been done.
@@ -136,11 +110,10 @@ class Worker : NonCopyable
 
         #pragma region Operators
 
-        Worker& operator=(Worker const& in_copy) noexcept = delete;
-        Worker& operator=(Worker&&        in_move) noexcept = default;
+        Worker& operator=(Worker const& in_copy) = delete;
+        Worker& operator=(Worker&&      in_move) = delete;
 
         #pragma endregion
-
 };
 
 #include "Threading/Worker.inl"

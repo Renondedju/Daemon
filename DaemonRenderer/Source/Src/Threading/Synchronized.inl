@@ -58,3 +58,25 @@ TType& Synchronized<TType>::Unsafe() noexcept
 {
     return m_value;
 }
+
+template <typename TType>
+Synchronized<TType>& Synchronized<TType>::operator=(Synchronized const& in_copy) noexcept
+{
+    WriteAccess write_access(*this);
+    ReadAccess  read_access (in_copy);
+
+    m_value = in_copy.m_value;
+
+    return *this;
+}
+
+template <typename TType>
+Synchronized<TType>& Synchronized<TType>::operator=(Synchronized&& in_move) noexcept
+{
+    WriteAccess write_access(*this);
+    WriteAccess move_access (in_move);
+
+    m_value = std::move(in_move.m_value);
+
+    return *this;
+}

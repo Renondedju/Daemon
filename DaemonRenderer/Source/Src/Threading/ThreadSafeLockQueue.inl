@@ -25,10 +25,10 @@
 template<typename TType>
 ThreadSafeLockQueue<TType>::ThreadSafeLockQueue():
     m_empty_notification {},
-    m_push_notification     {},
+    m_push_notification  {},
     m_unlock_all         {false},
-    m_empty_mutex         {},
-    m_queue                 {}
+    m_empty_mutex        {},
+    m_queue              {}
 {}
 
 template<typename TType>
