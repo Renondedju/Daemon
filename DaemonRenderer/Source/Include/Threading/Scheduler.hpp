@@ -28,6 +28,8 @@
 
 #include "Config.hpp"
 #include "Types/FundamentalTypes.hpp"
+
+#include "Threading/Task.hpp"
 #include "Threading/WorkerGroups/WorkerGroup.hpp"
 #include "Threading/WorkerGroups/EWorkerGroupID.hpp"
 

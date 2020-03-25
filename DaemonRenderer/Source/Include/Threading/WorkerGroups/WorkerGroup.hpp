@@ -23,11 +23,11 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Config.hpp"
-#include "Containers/Vector.hpp"
 #include "Types/FundamentalTypes.hpp"
 
-#include "Threading/Task.hpp"
 #include "Threading/Worker.hpp"
 #include "Threading/WorkerGroups/EWorkerGroupID.hpp"
 
@@ -43,8 +43,8 @@ class WorkerGroup
 
         #pragma region Members
 
-        EWorkerGroupID m_group_id;
-        Vector<Worker> m_workers;
+        EWorkerGroupID      m_group_id;
+        std::vector<Worker> m_workers;
 
         #pragma endregion
 
@@ -87,8 +87,8 @@ class WorkerGroup
 
         #pragma region Operators
 
-        WorkerGroup& operator=(WorkerGroup const& in_copy) noexcept = delete;
-        WorkerGroup& operator=(WorkerGroup&&      in_move) noexcept = delete;
+        WorkerGroup& operator=(WorkerGroup const& in_copy) = delete;
+        WorkerGroup& operator=(WorkerGroup&&      in_move) = delete;
 
         #pragma endregion
 
