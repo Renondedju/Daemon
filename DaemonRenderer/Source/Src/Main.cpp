@@ -96,7 +96,7 @@ void TestBatched(DAEsize const in_tasks_count, DAEuint16 const in_workers_count,
     BatchedWorkerGroup group(EWorkerGroupID::Ecs, in_workers_count);
     std::atomic_flag   wait = ATOMIC_FLAG_INIT;
 
-    BENCHMARK("Writing tasks")
+    //BENCHMARK("Writing tasks")
     {
         std::vector<Task> tasks (in_tasks_count + 2);
 
@@ -133,8 +133,9 @@ int main()
     // in order to output a benchmark, the bigger it is, the greater the accuracy of the benchmark
     // but the slower it will be to compute
     DAEsize   const sample_size   = 500;
+    DAEsize   const test_count    = 5;
     DAEsize   const tasks_count   = 50;
-    DAEuint16 const workers_count = 7;
+    DAEuint16 const workers_count = 4;
 
     std::cout << "Executing " << tasks_count << " tasks with " << workers_count << " workers.\n";
 
@@ -148,11 +149,13 @@ int main()
             TestTask();
     }
 
-    std::cout << "\n---- Relaxed test" << std::endl;
-    TestRelaxed(tasks_count, workers_count, sample_size);
+    std::cout << "\n---- Relaxed tests" << std::endl;
+    for (DAEsize test = 0; test < test_count; ++test)
+        TestRelaxed(tasks_count, workers_count, sample_size);
 
-    std::cout << "\n---- Batched test" << std::endl;
-    TestBatched(tasks_count, workers_count, sample_size);
+    std::cout << "\n---- Batched tests" << std::endl;
+    for (DAEsize test = 0; test < test_count; ++test)
+        TestBatched(tasks_count, workers_count, sample_size);
 
     system("pause");
 
