@@ -22,9 +22,18 @@
  *  SOFTWARE.
  */
 
-template <EventHandlerType TEventHandler>
-RkVoid System::SetupEventHandler() noexcept
+#include "ECS/System.hpp"
+
+USING_RUKEN_NAMESPACE
+
+System::System(EntityAdmin& in_admin) noexcept:
+    m_admin {in_admin}
+{ }
+
+EventHandlerBase* System::GetEventHandler(EEventName const in_event_name) const noexcept
 {
-    std::unique_ptr<TEventHandler> instance = std::make_unique<TEventHandler>();
-    m_handlers.insert_or_assign(instance->GetHandledEvent(), instance);
+    if (m_handlers.contains(in_event_name))
+        return m_handlers.at(in_event_name).get();
+
+    return nullptr;
 }

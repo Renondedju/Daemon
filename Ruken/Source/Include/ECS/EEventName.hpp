@@ -22,9 +22,20 @@
  *  SOFTWARE.
  */
 
-template <EventHandlerType TEventHandler>
-RkVoid System::SetupEventHandler() noexcept
+#pragma once
+
+#include "Build/Namespace.hpp"
+
+BEGIN_RUKEN_NAMESPACE
+
+/**
+ * \brief Enumerates all types of events that could be fired in the ECS
+ */
+enum class EEventName
 {
-    std::unique_ptr<TEventHandler> instance = std::make_unique<TEventHandler>();
-    m_handlers.insert_or_assign(instance->GetHandledEvent(), instance);
-}
+    OnStart,
+    OnUpdate,
+    OnEnd
+};
+
+END_RUKEN_NAMESPACE

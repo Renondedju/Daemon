@@ -33,7 +33,9 @@
 #include "Core/Service.hpp"
 
 #include "ECS/Entity.hpp"
+#include "ECS/System.hpp"
 #include "ECS/Archetype.hpp"
+#include "ECS/EEventName.hpp"
 #include "ECS/SystemBase.hpp"
 
 #include "Threading/Scheduler.hpp"
@@ -56,13 +58,12 @@ class EntityAdmin final: public Service<EntityAdmin>
 
         #pragma region Members
 
-        std::vector       <std::unique_ptr<SystemBase>>                      m_systems              {};
-        std::unordered_map<ArchetypeFingerprint, std::unique_ptr<Archetype>> m_archetypes           {};
-        std::unordered_map<RkSize, std::unique_ptr<ComponentBase>>           m_exclusive_components {};
+        std::vector<std::unique_ptr<System>>                       m_systems              {};
+        std::unordered_map<RkSize, std::unique_ptr<ComponentBase>> m_exclusive_components {};
+        std::unordered_map<EEventName, std::unique_ptr<ExecutionPlan>>  m_execution_plans {};
+        std::unordered_map<ArchetypeFingerprint, std::unique_ptr<Archetype>> m_archetypes {};
 
-        // Update related
-        ExecutionPlan m_update_plan {};
-        Scheduler*    m_scheduler   {nullptr};
+        Scheduler* m_scheduler {nullptr};
 
         #pragma endregion 
 
@@ -75,11 +76,6 @@ class EntityAdmin final: public Service<EntityAdmin>
         template <ComponentType... TComponents>
         Archetype* CreateArchetype() noexcept;
 
-        /**
-         * \brief Builds or rebuilds the update plan
-         */
-        RkVoid BuildUpdatePlan() noexcept;
-
         #pragma endregion 
 
     public:
@@ -90,7 +86,7 @@ class EntityAdmin final: public Service<EntityAdmin>
 
         EntityAdmin(EntityAdmin const& in_copy) = delete;
         EntityAdmin(EntityAdmin&&      in_move) = delete;
-        ~EntityAdmin()                          = default;
+        ~EntityAdmin() override                 = default;
 
         #pragma endregion
 
@@ -98,9 +94,17 @@ class EntityAdmin final: public Service<EntityAdmin>
 
         // --- Simulation manipulation
 
-        RkVoid StartSimulation () noexcept;
-        RkVoid UpdateSimulation() noexcept;
-        RkVoid EndSimulation   () noexcept;
+        /**
+         * \brief Builds an event execution plan
+         * \param in_event_name Event type to build the execution plan for
+         */
+        RkVoid BuildEventExecutionPlan(EEventName in_event_name) noexcept;
+
+        /**
+         * \brief Starts the execution of an event type
+         * \param in_event_name Event type to execute
+         */
+        RkVoid ExecuteEvent(EEventName in_event_name) noexcept;
 
         // --- Entity / Systems lifetime manipulation
 

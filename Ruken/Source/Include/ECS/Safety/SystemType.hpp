@@ -24,13 +24,12 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "Build/Namespace.hpp"
-#include "Meta/IsBaseOfTemplate.hpp"
-#include "ECS/Safety/ComponentType.hpp"
 
 BEGIN_RUKEN_NAMESPACE
 
-template <ComponentType... TComponents>
 class System;
 
 /**
@@ -40,7 +39,7 @@ class System;
 template <typename TType>
 struct IsSystem
 {
-    static constexpr RkBool value = IsBaseOfTemplate<System, std::remove_const_t<TType>>::value;
+    static constexpr RkBool value = std::is_base_of_v<System, std::remove_const_t<TType>>;
 };
 
 template <typename TType>

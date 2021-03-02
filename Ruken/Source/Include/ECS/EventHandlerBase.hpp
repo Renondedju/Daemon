@@ -26,50 +26,44 @@
 
 #include "Build/Namespace.hpp"
 
-#include "ECS/EEventName.hpp"
-#include "ECS/ComponentQuery.hpp"
-#include "ECS/EventHandlerBase.hpp"
-
-#include "Types/FundamentalTypes.hpp"
-
 BEGIN_RUKEN_NAMESPACE
 
-class SystemBase
+/**
+ * \brief Base class of every event handler
+ *        Used to store handlers by reference or pointer without having to deal with templates
+ */
+class EventHandlerBase
 {
     public:
 
-        #pragma region Members
-
-
-        #pragma endregion
-
         #pragma region Constructors
 
-        SystemBase()                          = default;
-        SystemBase(SystemBase const& in_copy) = default;
-        SystemBase(SystemBase&&      in_move) = default;
-        virtual ~SystemBase()                 = default;
+        EventHandlerBase()                                = default;
+        EventHandlerBase(EventHandlerBase const& in_copy) = default;
+        EventHandlerBase(EventHandlerBase&&      in_move) = default;
+        virtual ~EventHandlerBase()                       = default;
 
         #pragma endregion
 
         #pragma region Methods
 
-        // --- Virtual
+        /**
+         * \brief Returns the name of the handled event
+         * \return Event name
+         */
+        virtual EEventName GetHandledEvent() noexcept = 0;
 
         /**
-         * \brief Adds a component reference group to the system.
-         *        This is called by the entity admin at the creation of a new archetype
-         *        if the component query of this archetype and the system matches
-         * \param in_archetype Referenced archetype of the group to create 
+         * \brief Execution method of the handler
          */
-        virtual RkVoid AddReferenceGroup(Archetype& in_archetype) noexcept = 0;
+        virtual RkVoid Execute() noexcept = 0;
 
         #pragma endregion
 
         #pragma region Operators
 
-        SystemBase& operator=(SystemBase const& in_copy) = default;
-        SystemBase& operator=(SystemBase&&      in_move) = default;
+        EventHandlerBase& operator=(EventHandlerBase const& in_copy) = default;
+        EventHandlerBase& operator=(EventHandlerBase&&      in_move) = default;
 
         #pragma endregion
 };

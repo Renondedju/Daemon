@@ -22,9 +22,31 @@
  *  SOFTWARE.
  */
 
-template <EventHandlerType TEventHandler>
-RkVoid System::SetupEventHandler() noexcept
+#pragma once
+
+#include "Build/Namespace.hpp"
+#include "Meta/IsBaseOfTemplate.hpp"
+#include "ECS/Safety/ComponentType.hpp"
+
+BEGIN_RUKEN_NAMESPACE
+
+template <EEventName TEventName, ComponentType... TComponents>
+class EventHandler;
+
+template <template <EEventName, typename...> class TBase, typename TDerived>
+struct IsBaseOfEventHandlerImpl
 {
-    std::unique_ptr<TEventHandler> instance = std::make_unique<TEventHandler>();
-    m_handlers.insert_or_assign(instance->GetHandledEvent(), instance);
-}
+    template<EEventName TEventName, typename... TTypes>
+    static constexpr std::true_type  Test(const TBase<TEventName, TTypes...>*) { return {}; }
+    static constexpr std::false_type Test(...)                                 { return {}; }
+
+    using Type = decltype(Test(std::declval<TDerived*>()));
+};
+
+template<typename TType>
+using IsEventHandler = typename IsBaseOfEventHandlerImpl<EventHandler, TType>::Type;
+
+template <typename TType>
+concept EventHandlerType = IsEventHandler<TType>::value;
+
+END_RUKEN_NAMESPACE
